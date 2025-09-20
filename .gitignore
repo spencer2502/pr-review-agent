@@ -1,0 +1,14 @@
+# Python backend
+/venv/
+__pycache__/
+*.pyc
+
+# Node.js / Frontend
+/node_modules/
+dist/
+build/
+
+# IDE and OS specific files
+.vscode/
+.env
+.DS_Store
