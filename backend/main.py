@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 # Load .env before anything else
 load_dotenv()
 
-from app.api.routes import analysis, chat, github, health
-from app.config import settings
+from api.routes import analysis, chat, github, health
+from config import settings
 
 app = FastAPI(
     title="PR Review Agent API",
