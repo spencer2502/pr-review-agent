@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
-# from app.api.routes import analysis, chat, github, health
+from app.api.routes import analysis, chat, github, health
 from app.config import settings
 
 app = FastAPI(
@@ -21,10 +21,10 @@ app.add_middleware(
 )
 
 # Include routers
-# app.include_router(health.router, prefix="/health", tags=["health"])
-# app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
-# app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
-# app.include_router(github.router, prefix="/api/github", tags=["github"])
+app.include_router(health.router, prefix="/health", tags=["health"])
+app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(github.router, prefix="/api/github", tags=["github"])
 
 @app.get("/")
 async def root():
