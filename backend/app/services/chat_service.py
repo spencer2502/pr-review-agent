@@ -1,6 +1,8 @@
+# backend/app/services/chat_service.py
 import httpx
 import logging
 from datetime import datetime
+import os
 from app.config import settings
 from app.models.chat import ChatResponse
 
@@ -8,15 +10,22 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
     def __init__(self):
-        self.openai_key = settings.OPENAI_API_KEY
+        self.groq_key = os.getenv("GROQ_API_KEY")
+        self.openai_key = os.getenv("OPENAI_API_KEY")  # Keep as fallback
     
     async def generate_response(self, message: str, mentor_mode: str, pr_context: dict) -> ChatResponse:
         """Generate chat response with mentor persona"""
         try:
-            if self.openai_key:
+            # Try Groq first, then OpenAI, then fallback
+            if self.groq_key:
+                response_text = await self._groq_chat(message, mentor_mode, pr_context)
+                logger.info("Used Groq API successfully")
+            elif self.openai_key:
                 response_text = await self._openai_chat(message, mentor_mode, pr_context)
+                logger.info("Used OpenAI API successfully")
             else:
                 response_text = self._fallback_chat(message, mentor_mode, pr_context)
+                logger.info("Used fallback responses")
             
             mentor_names = {
                 "sarah_lead": "Sarah (Team Lead)",
@@ -32,23 +41,45 @@ class ChatService:
             )
             
         except Exception as e:
-            logger.error(f"Chat error: {e}")
+            logger.error(f"All chat APIs failed: {e}")
+            # Always return fallback if everything fails
             return ChatResponse(
-                response="I'm having trouble processing your question. Could you try rephrasing it?",
+                response=self._fallback_chat(message, mentor_mode, pr_context),
                 timestamp=datetime.utcnow(),
                 mentor_name="AI Reviewer"
             )
     
-    async def _openai_chat(self, message: str, mentor_mode: str, pr_context: dict) -> str:
-        """Chat with OpenAI API"""
-        system_prompts = {
-            "sarah_lead": "You are Sarah, an experienced team lead focused on architecture and mentoring developers.",
-            "alex_security": "You are Alex, a security expert. Focus on security implications and be direct about risks.",
-            "jordan_perf": "You are Jordan, a performance optimization expert. Focus on scalability and metrics.",
-            "balanced": "You are an AI code reviewer providing balanced, helpful feedback."
-        }
+    async def _groq_chat(self, message: str, mentor_mode: str, pr_context: dict) -> str:
+        """Chat with Groq API"""
+        system_prompt = self._get_system_prompt(mentor_mode)
         
-        system_prompt = system_prompts.get(mentor_mode, system_prompts["balanced"])
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.groq_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama3-70b-8192",  # Fast and good model
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"PR Context: Risk score {pr_context.get('risk_score', 0)}/100. Question: {message}"}
+                    ],
+                    "max_tokens": 200,
+                    "temperature": 0.7
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"]
+            else:
+                raise Exception(f"Groq API error: {response.status_code}")
+    
+    async def _openai_chat(self, message: str, mentor_mode: str, pr_context: dict) -> str:
+        """Chat with OpenAI API (fallback)"""
+        system_prompt = self._get_system_prompt(mentor_mode)
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -74,8 +105,18 @@ class ChatService:
             else:
                 raise Exception(f"OpenAI API error: {response.status_code}")
     
+    def _get_system_prompt(self, mentor_mode: str) -> str:
+        """Get persona prompt for different mentor modes"""
+        prompts = {
+            "sarah_lead": "You are Sarah, an experienced team lead. Focus on architecture, maintainability, and team standards. Give thorough explanations and help developers understand the 'why' behind recommendations. Be patient and educational.",
+            "alex_security": "You are Alex, a security expert. Focus on security vulnerabilities and compliance issues. Be direct and prioritize security above all else. Explain security risks clearly.",
+            "jordan_perf": "You are Jordan, a performance optimization expert. Focus on metrics, scalability, and efficiency. Back up recommendations with data and focus on performance impact.",
+            "balanced": "You are an AI code reviewer providing balanced, helpful feedback covering functionality, maintainability, and best practices."
+        }
+        return prompts.get(mentor_mode, prompts["balanced"])
+    
     def _fallback_chat(self, message: str, mentor_mode: str, pr_context: dict) -> str:
-        """Fallback chat responses when OpenAI is unavailable"""
+        """Fallback chat responses when APIs are unavailable"""
         message_lower = message.lower()
         risk_score = pr_context.get('risk_score', 0)
         issues_count = len(pr_context.get('issues', []))
