@@ -11,7 +11,7 @@ class Settings:
 
     # External APIs
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")  # Only Gemini now
 
     # CORS
     ALLOWED_ORIGINS: List[str] = (
@@ -23,10 +23,13 @@ class Settings:
     @property
     def has_github_token(self) -> bool:
         return bool(self.GITHUB_TOKEN)
-
+    
     @property
-    def has_groq_key(self) -> bool:
-        return bool(self.GROQ_API_KEY)
+    def has_gemini_key(self) -> bool:
+        return bool(self.GEMINI_API_KEY)
 
 settings = Settings()
-    
+
+# Debug prints
+print(f"GEMINI_API_KEY loaded: {bool(settings.GEMINI_API_KEY)}")
+print(f"GITHUB_TOKEN loaded: {bool(settings.GITHUB_TOKEN)}")
