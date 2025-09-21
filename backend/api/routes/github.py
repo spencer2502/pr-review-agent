@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from app.services.github_service import GitHubService
-from app.services.analysis_service import AnalysisService
-from app.models.github import PRRequest
-from app.models.analysis import AnalysisResponse
+from services.github_service import GitHubService
+from services.analysis_service import AnalysisService
+from models.github import PRRequest
+from models.analysis import AnalysisResponse
 
 router = APIRouter()
 github_service = GitHubService()

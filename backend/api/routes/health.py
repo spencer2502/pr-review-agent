@@ -1,7 +1,7 @@
 # backend/app/api/routes/health.py
 from fastapi import APIRouter
 from datetime import datetime
-from app.config import settings
+from config import settings
 import httpx
 
 router = APIRouter()

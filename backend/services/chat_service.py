@@ -3,7 +3,7 @@ import httpx
 import logging
 from datetime import datetime
 import os
-from app.models.chat import ChatResponse
+from models.chat import ChatResponse
 
 logger = logging.getLogger(__name__)
 

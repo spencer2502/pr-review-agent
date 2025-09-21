@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from app.services.analysis_service import AnalysisService
-from app.models.analysis import AnalysisResponse
+from services.analysis_service import AnalysisService
+from models.analysis import AnalysisResponse
 
 router = APIRouter()
 analysis_service = AnalysisService()

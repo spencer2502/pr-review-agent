@@ -2,9 +2,9 @@ import asyncio
 import random
 from datetime import datetime
 from typing import List, Dict
-from app.models.analysis import Issue, AutoFix, TimeachineData, AnalysisResponse
-from app.utils.risk_calculator import RiskCalculator
-from app.utils.code_analyzer import CodeAnalyzer
+from models.analysis import Issue, AutoFix, TimeachineData, AnalysisResponse
+from utils.risk_calculator import RiskCalculator
+from utils.code_analyzer import CodeAnalyzer
 
 class AnalysisService:
     def __init__(self):

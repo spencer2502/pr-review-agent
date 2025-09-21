@@ -1,5 +1,5 @@
 from typing import List, Dict
-from app.models.analysis import Issue
+from models.analysis import Issue
 
 class CodeAnalyzer:
     def detect_issues(self, files: List[Dict]) -> List[Issue]:
