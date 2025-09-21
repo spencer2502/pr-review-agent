@@ -6,6 +6,7 @@ class PRRequest(BaseModel):
     repository: str
     pr_number: int
     title: Optional[str] = ""
+    github_token: Optional[str] = None
 
 class GitHubFile(BaseModel):
     filename: str

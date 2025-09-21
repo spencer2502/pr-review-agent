@@ -1,30 +1,45 @@
-# Python backend
-/venv/
-__pycache__/
-*.pyc
+# ==========================
+# Python Backend
+# ==========================
+# Virtual environments
+venv/
+.env/
+.venv/
+ENV/
+env/
 
-# Node.js / Frontend
-/node_modules/
-dist/
-build/
-
-# IDE and OS specific files
-.vscode/
-.env
-.DS_Store
-
+# Compiled files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-env/
-venv/
-ENV/
-.env
-.venv
-instance/
-.webassets-cache
+
+# Test & coverage
+.pytest_cache/
 .coverage
 htmlcov/
-.pytest_cache/
+
+# Flask/Django instance folders
+instance/
+.webassets-cache
+
+# ==========================
+# Node.js / Frontend
+# ==========================
+node_modules/
+dist/
+build/
+
+# ==========================
+# Environment Files
+# ==========================
+.env
+.env.*        # .env.local, .env.production, etc. (but keep an .env.example)
+
+# ==========================
+# IDE / System
+# ==========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

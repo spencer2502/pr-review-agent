@@ -9,11 +9,11 @@ chat_service = ChatService()
 # Storage
 chat_history = {}
 
-@router.post("/{pr_id}", response_model=ChatResponse)
+@router.post("/{pr_id:path}", response_model=ChatResponse)
 async def chat_with_ai(pr_id: str, request: ChatRequest):
     """Chat with AI about specific PR"""
     try:
-        # Get PR context (you'll need to import analyses_storage or use dependency injection)
+        # Get PR context
         from app.api.routes.analysis import analyses_storage
         from app.api.routes.github import analyses_storage as github_analyses_storage
         

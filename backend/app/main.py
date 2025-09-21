@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import os
+from dotenv import load_dotenv
+
+# Load .env before anything else
+load_dotenv()
+
 from app.api.routes import analysis, chat, github, health
 from app.config import settings
 
@@ -11,7 +15,7 @@ app = FastAPI(
     description="AI-powered Pull Request Review with GitHub integration"
 )
 
-# CORS middleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,

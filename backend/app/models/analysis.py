@@ -34,4 +34,5 @@ class AnalysisResponse(BaseModel):
     issues: List[Issue]
     auto_fixes: List[AutoFix]
     analysis_time: float
+    github_authenticated: Optional[bool] = False
     created_at: datetime = datetime.utcnow()
