@@ -6,12 +6,21 @@ import httpx
 
 router = APIRouter()
 
-@router.get("/")
-async def health_check():
+# --- Lightweight check for Railway (always fast & successful) ---
+@router.get("/live")
+async def liveness_check():
+    return {
+        "status": "ok",
+        "timestamp": datetime.utcnow()
+    }
+
+# --- Full external services health check ---
+@router.get("/full")
+async def full_health_check():
     github_status = {"ok": True, "error": "No token configured - public repos only"}
     gemini_status = {"ok": False, "error": None}
 
-    # Only check GitHub API if token is available
+    # GitHub API check
     if settings.has_github_token:
         try:
             async with httpx.AsyncClient(timeout=5) as client:
@@ -25,7 +34,7 @@ async def health_check():
         except Exception as e:
             github_status["error"] = str(e)
 
-    # Check Google Gemini API
+    # Gemini API check
     if settings.has_gemini_key:
         try:
             async with httpx.AsyncClient(timeout=10) as client:
@@ -33,18 +42,13 @@ async def health_check():
                     f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={settings.GEMINI_API_KEY}",
                     headers={"Content-Type": "application/json"},
                     json={
-                        "contents": [
-                            {
-                                "parts": [{"text": "Health check test"}]
-                            }
-                        ],
+                        "contents": [{"parts": [{"text": "Health check test"}]}],
                         "generationConfig": {
                             "maxOutputTokens": 1,
                             "temperature": 0.1
                         }
                     }
                 )
-                
                 if resp.status_code == 200:
                     gemini_status = {"ok": True, "error": None}
                 else:
@@ -52,7 +56,6 @@ async def health_check():
                         "ok": False,
                         "error": f"HTTP {resp.status_code}: {resp.text[:100]}"
                     }
-                    
         except Exception as e:
             gemini_status = {"ok": False, "error": f"Connection error: {str(e)}"}
     else:
