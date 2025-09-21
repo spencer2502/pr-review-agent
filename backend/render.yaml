@@ -1,9 +1,7 @@
 services:
   - type: web
-    name: pr-review-agent-backend
-    runtime: python
+    name: pr-review-agent
+    env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    pythonVersion: 3.11

@@ -15,7 +15,7 @@ app = FastAPI(
     description="AI-powered Pull Request Review with GitHub integration"
 )
 
-
+    
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
