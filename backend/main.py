@@ -40,9 +40,11 @@ async def root():
     }
 
 if __name__ == "__main__":
+    # For Railway deployment, use the PORT environment variable
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         app,
-        host="127.0.0.1",
-        port=int(os.getenv("PORT", 8000)),
+        host="0.0.0.0",  # Important: bind to all interfaces for Railway
+        port=port,
         log_level="info"
     )
