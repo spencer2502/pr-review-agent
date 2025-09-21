@@ -17,8 +17,8 @@ chat_history = {}
 async def chat_with_ai(pr_id: str, request: ChatRequest):
     """Chat with AI about specific PR"""
     try:
-        from app.api.routes.analysis import analyses_storage
-        from app.api.routes.github import analyses_storage as github_analyses_storage
+        from api.routes.analysis import analyses_storage
+        from api.routes.github import analyses_storage as github_analyses_storage
 
         # Lookup PR context
         pr_context = analyses_storage.get(pr_id) or github_analyses_storage.get(pr_id) or {}
