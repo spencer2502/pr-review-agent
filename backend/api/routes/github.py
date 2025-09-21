@@ -8,46 +8,37 @@ router = APIRouter()
 github_service = GitHubService()
 analysis_service = AnalysisService()
 
-# Storage
+# In-memory storage
 analyses_storage = {}
 
 @router.post("/analyze-pr", response_model=AnalysisResponse)
 async def analyze_github_pr(pr_request: PRRequest):
     """Analyze PR directly from GitHub repository"""
     try:
-        # Validate repository format
         if not pr_request.repository or "/" not in pr_request.repository:
             raise HTTPException(status_code=400, detail="Invalid repository format. Use 'owner/repo'")
-        
-        # Fetch PR data from GitHub with optional token
+
         pr_data = await github_service.get_pr_data(
             pr_request.repository, 
             pr_request.pr_number,
             pr_request.github_token
         )
-        
-        # Analyze the PR
+
         pr_id = f"{pr_request.repository}-{pr_request.pr_number}"
         analysis = await analysis_service.analyze_pr(pr_id, pr_data, pr_request.repository)
-        
-        # Add token status to analysis
         analysis.github_authenticated = bool(pr_request.github_token)
-        
-        # Store analysis
+
         analyses_storage[pr_id] = analysis
-        
         return analysis
-        
+
     except HTTPException:
-        raise  # Re-raise HTTP exceptions
+        raise
     except Exception as e:
         error_message = str(e)
-        
-        # Provide helpful error messages
         if "Invalid GitHub token" in error_message:
-            raise HTTPException(status_code=401, detail="Invalid GitHub token provided. Please check your token.")
+            raise HTTPException(status_code=401, detail="Invalid GitHub token provided.")
         elif "rate limit" in error_message.lower():
-            raise HTTPException(status_code=429, detail="GitHub API rate limit exceeded. Try again later or use a personal access token.")
+            raise HTTPException(status_code=429, detail="GitHub API rate limit exceeded.")
         elif "not found" in error_message:
             raise HTTPException(status_code=404, detail=error_message)
         else:
@@ -57,18 +48,16 @@ async def analyze_github_pr(pr_request: PRRequest):
 async def validate_github_token(request: dict):
     """Validate a GitHub token"""
     token = request.get("token", "")
-    
     if not token:
         return {"valid": False, "error": "No token provided"}
-    
+
+    import httpx
     try:
-        import httpx
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(
                 "https://api.github.com/user",
                 headers={"Authorization": f"token {token}"}
             )
-            
             if resp.status_code == 200:
                 user_data = resp.json()
                 return {
@@ -79,6 +68,5 @@ async def validate_github_token(request: dict):
                 }
             else:
                 return {"valid": False, "error": "Invalid token"}
-                
     except Exception as e:
         return {"valid": False, "error": str(e)}
