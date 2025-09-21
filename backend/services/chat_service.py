@@ -12,13 +12,13 @@ class ChatService:
         self.gemini_key = os.getenv("GEMINI_API_KEY")
         if not self.gemini_key:
             raise ValueError("GEMINI_API_KEY not set in environment variables")
-        logger.info("Using Google Gemini API")
+        logger.info("ChatService initialized with Google Gemini API")
 
     async def generate_response(self, message: str, mentor_mode: str, pr_context: dict) -> ChatResponse:
         """Generate chat response with mentor persona using Google Gemini"""
         try:
             response_text = await self._gemini_chat(message, mentor_mode, pr_context)
-            logger.info("Used Gemini API successfully")
+            logger.info("Gemini API responded successfully")
 
             mentor_names = {
                 "sarah_lead": "Sarah (Team Lead)",
@@ -34,8 +34,7 @@ class ChatService:
             )
 
         except Exception as e:
-            logger.error(f"Gemini API failed: {e}")
-            # Always return fallback if Gemini fails
+            logger.error(f"Gemini API failed: {e}", exc_info=True)
             return ChatResponse(
                 response=self._fallback_chat(message, mentor_mode, pr_context),
                 timestamp=datetime.utcnow(),
@@ -46,8 +45,7 @@ class ChatService:
         """Chat with Google Gemini API"""
         system_prompt = self._get_system_prompt(mentor_mode)
         user_prompt = self._build_user_prompt(message, pr_context)
-        
-        # Combine system and user prompts for Gemini
+
         combined_prompt = f"{system_prompt}\n\n{user_prompt}"
 
         async with httpx.AsyncClient() as client:
@@ -55,11 +53,7 @@ class ChatService:
                 f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={self.gemini_key}",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "contents": [
-                        {
-                            "parts": [{"text": combined_prompt}]
-                        }
-                    ],
+                    "contents": [{"parts": [{"text": combined_prompt}]}],
                     "generationConfig": {
                         "maxOutputTokens": 800,
                         "temperature": 0.5,
@@ -70,14 +64,16 @@ class ChatService:
                 timeout=20.0
             )
 
-            if response.status_code == 200:
+        if response.status_code == 200:
+            try:
                 result = response.json()
                 return result["candidates"][0]["content"]["parts"][0]["text"]
-            else:
-                raise Exception(f"Gemini API error: {response.status_code} {response.text}")
+            except (KeyError, IndexError) as e:
+                raise Exception(f"Unexpected Gemini response format: {response.text}") from e
+        else:
+            raise Exception(f"Gemini API error {response.status_code}: {response.text}")
 
     def _build_user_prompt(self, message: str, pr_context: dict) -> str:
-        """Build user prompt with PR context"""
         pr_title = pr_context.get("title", "Untitled PR")
         pr_summary = pr_context.get("summary", "")
         pr_diff = pr_context.get("diff", "No code diff available")
@@ -99,7 +95,7 @@ class ChatService:
         {message}
 
         Please:
-        - Highlight **security, performance, and maintainability** issues.
+        - Highlight security, performance, and maintainability issues.
         - Reference specific lines/functions from the diff if possible.
         - Give concrete suggestions for improvements.
         - Tailor tone based on your persona.
@@ -107,44 +103,40 @@ class ChatService:
         """
 
     def _get_system_prompt(self, mentor_mode: str) -> str:
-        """Get persona prompt for different mentor modes"""
         prompts = {
             "sarah_lead": (
                 "You are Sarah, an experienced team lead. "
                 "Focus on architecture, maintainability, and team standards. "
-                "Give thorough explanations and help developers understand the 'why' behind recommendations. "
-                "Be patient and educational."
+                "Explain the 'why' behind recommendations in a patient, educational tone."
             ),
             "alex_security": (
                 "You are Alex, a security expert. "
-                "Focus on security vulnerabilities and compliance issues. "
-                "Be direct and prioritize security above all else. "
-                "Explain security risks clearly."
+                "Focus on vulnerabilities, compliance issues, and risks. "
+                "Be direct and prioritize security."
             ),
             "jordan_perf": (
                 "You are Jordan, a performance optimization expert. "
-                "Focus on metrics, scalability, and efficiency. "
-                "Back up recommendations with data and focus on performance impact."
+                "Focus on scalability, efficiency, and metrics. "
+                "Provide optimization tips with reasoning."
             ),
             "balanced": (
-                "You are an AI code reviewer providing balanced, helpful feedback "
-                "covering functionality, maintainability, and best practices."
+                "You are an AI reviewer giving balanced, constructive feedback "
+                "on functionality, maintainability, and best practices."
             ),
         }
         return prompts.get(mentor_mode, prompts["balanced"])
 
     def _fallback_chat(self, message: str, mentor_mode: str, pr_context: dict) -> str:
-        """Fallback chat responses when Gemini API is unavailable"""
-        risk_score = pr_context.get('risk_score', 0)
-        issues_count = len(pr_context.get('issues', []))
+        risk_score = pr_context.get("risk_score", 0)
+        issues_count = len(pr_context.get("issues", []))
 
         mentor_intros = {
-            "sarah_lead": "As your team lead, I want to help you understand the architectural implications.",
-            "alex_security": "From a security standpoint, I'm concerned about the vulnerabilities I've identified.",
-            "jordan_perf": "Looking at performance metrics, I can see several optimization opportunities.",
+            "sarah_lead": "As your team lead, I’ll guide you on design and maintainability.",
+            "alex_security": "From a security perspective, here are some concerns.",
+            "jordan_perf": "From a performance standpoint, I see optimization areas.",
             "balanced": "Based on my analysis,"
         }
         intro = mentor_intros.get(mentor_mode, mentor_intros["balanced"])
 
-        return f"{intro} Your PR has {issues_count} issues with a risk score of {risk_score}/100. " \
-               f"What specific aspect would you like me to explain? (Note: AI service is temporarily unavailable)"
+        return f"{intro} Your PR shows {issues_count} issues with a risk score of {risk_score}/100. " \
+               f"What aspect would you like me to elaborate on? (Note: Gemini service is temporarily unavailable)"
